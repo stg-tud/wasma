@@ -1,0 +1,26 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"path/filepath"
+	"strings"
+	"wasma/pkg/wasma"
+	"wasma/pkg/wasma/graphs"
+	"wasma/pkg/wasmp/modules"
+)
+
+type NEWANALYSIS struct{}
+
+func (nEWANALYSIS *NEWANALYSIS) Analyze(module *modules.Module, args map[string]string) {
+    // add code
+}
+
+func (nEWANALYSIS *NEWANALYSIS) Name() string {
+	return "NEWANALYSIS"
+}
+
+func main() {
+	analysis := wasma.NewWasmA()
+	analysis.Start(&NEWANALYSIS{})
+}

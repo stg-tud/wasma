@@ -1,0 +1,3 @@
+[submodule "test/wabesa"]
+	path = test/wabesa
+	url = https://github.com/stg-tud/wabesa.git
