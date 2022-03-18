@@ -12,6 +12,8 @@ build:
 	go build -o bin/OverapproximationCallIndirect cmd/OverapproximationCallIndirect/OverapproximationCallIndirect.go
 	go build -o bin/SectionDetails cmd/SectionDetails/SectionDetails.go
 	go build -o bin/SectionList cmd/SectionList/SectionList.go
+	go build -o bin/wasma-fmng cmd/wasma-fmng/wasma-fmng.go
+	go build -o bin/wasma-fm cmd/wasma-fm/wasma-fm.go
 
 build-win:
 	@echo "Build standard analyses (Windows) ..."
@@ -27,3 +29,6 @@ build-win:
 	GOOS=windows go build -o bin/OverapproximationCallIndirect.exe cmd/OverapproximationCallIndirect/OverapproximationCallIndirect.go
 	GOOS=windows go build -o bin/SectionDetails.exe cmd/SectionDetails/SectionDetails.go
 	GOOS=windows go build -o bin/SectionList.exe cmd/SectionList/SectionList.go
+	GOOS=windows go build -o bin/wasma-fmng.exe cmd/wasma-fmng/wasma-fmng.go
+	GOOS=windows go build -o bin/wasma-fm.exe cmd/wasma-fm/wasma-fm.go
+
