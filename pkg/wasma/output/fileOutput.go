@@ -55,6 +55,20 @@ func OpenOrCreateCSV(filePath string) (*CSVFile, error) {
 	return &CSVFile{filePath, file, csv.NewWriter(file)}, nil
 }
 
+func OpenOrCreateCSVHead(filePath string, head []string) (*CSVFile, error) {
+	csvFile, err := OpenOrCreateCSV(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes, err := os.ReadFile(csvFile.filePath)
+	if err == nil && len(bytes) == 0 {
+		csvFile.Write(head)
+	}
+
+	return csvFile, nil
+}
+
 func OpenOrCreateTXT(filePath string) (*os.File, error) {
 	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if err == nil {
@@ -70,4 +84,3 @@ func OpenOrCreateTXT(filePath string) (*os.File, error) {
 
 	return file, nil
 }
-
