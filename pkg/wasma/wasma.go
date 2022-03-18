@@ -17,9 +17,10 @@ type Analysis interface {
 }
 
 type WasmA struct {
-	analyses              []Analysis
-	inputFiles            []string
-	output                string
+	analyses   []Analysis
+	inputFiles []string
+	output     string
+	con        string
 	//analysis              int
 	funcIdx               int
 	logFilePath           string
@@ -40,6 +41,7 @@ func (wasma *WasmA) Start(analysis Analysis) {
 			args := map[string]string{
 				"file": wasmFile,
 				"out":  wasma.output,
+				"con":  wasma.con,
 				"fi":   strconv.Itoa(wasma.funcIdx),
 				"ic":   wasma.considerIndirectCalls,
 			}
@@ -63,6 +65,7 @@ func AddAnalysis(analysis Analysis) {
 func NewWasmA() WasmA {
 	file := flag.String("file", "", "wasm file that should be analyzed")
 	out := flag.String("out", "", "output path")
+	con := flag.String("con", "", "path to config file")
 	files := flag.String("files", "", "file containing a list of wasm files")
 	funcIdx := flag.Int("index", -1, "select a function by its function index")
 	logFilePath := flag.String("log", "", "log file")
@@ -113,7 +116,7 @@ func NewWasmA() WasmA {
 		log.Printf("log file set to: %v\n", *logFile)
 	}
 
-	return WasmA{Analyses, wasmFiles, *out, *funcIdx, *logFilePath, *findIndirectCalls}
+	return WasmA{Analyses, wasmFiles, *out, *con, *funcIdx, *logFilePath, *findIndirectCalls}
 
 }
 
