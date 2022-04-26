@@ -81,7 +81,13 @@ func NewTree(disassembly code.Disassembly) map[uint32]*CFGNode {
 							if ifBlock.ThenEnd == ifBlock.ElseEnd {
 								// only then block
 								if ifBlock.ThenEnd+1 < uint32(len(disassembly.DisassembledInstrs)) {
-									cfgControl.Successors = append(cfgControl.Successors, Edge{ifBlock.ThenEnd + 1, ""})
+									if _, found := startElseNode[ifBlock.ThenEnd+1]; found {
+										if startElseNode[ifBlock.ThenEnd+1]+1 < uint32(len(disassembly.DisassembledInstrs)) {
+											cfgControl.Successors = append(cfgControl.Successors, Edge{startElseNode[ifBlock.ThenEnd+1] + 1, ""})
+										}
+									} else {
+										cfgControl.Successors = append(cfgControl.Successors, Edge{ifBlock.ThenEnd + 1, ""})
+									}
 								}
 								if instrIdx+1 < uint32(len(disassembly.DisassembledInstrs)) {
 									cfgControl.Successors = append(cfgControl.Successors, Edge{instrIdx + 1, "then"})
@@ -96,7 +102,13 @@ func NewTree(disassembly code.Disassembly) map[uint32]*CFGNode {
 								if ifBlock.ThenEnd == instrIdx {
 									// only else block
 									if ifBlock.ElseEnd+1 < uint32(len(disassembly.DisassembledInstrs)) {
-										cfgControl.Successors = append(cfgControl.Successors, Edge{ifBlock.ElseEnd + 1, ""})
+										if _, found := startElseNode[ifBlock.ElseEnd+1]; found {
+											if startElseNode[ifBlock.ElseEnd+1]+1 < uint32(len(disassembly.DisassembledInstrs)) {
+												cfgControl.Successors = append(cfgControl.Successors, Edge{startElseNode[ifBlock.ElseEnd+1] + 1, ""})
+											}
+										} else {
+											cfgControl.Successors = append(cfgControl.Successors, Edge{ifBlock.ElseEnd + 1, ""})
+										}
 									}
 									if instrIdx+1 < uint32(len(disassembly.DisassembledInstrs)) {
 										cfgControl.Successors = append(cfgControl.Successors, Edge{instrIdx + 1, "else"})
@@ -164,7 +176,13 @@ func NewTree(disassembly code.Disassembly) map[uint32]*CFGNode {
 					} else {
 						// check if there is a next instruction
 						if instrIdx+1 < uint32(len(disassembly.DisassembledInstrs)) {
-							cfgControl.Successors = append(cfgControl.Successors, Edge{instrIdx + 1, ""})
+							if _, found := startElseNode[instrIdx+1]; found {
+								if startElseNode[instrIdx+1]+1 < uint32(len(disassembly.DisassembledInstrs)) {
+									cfgControl.Successors = append(cfgControl.Successors, Edge{startElseNode[instrIdx+1] + 1, ""})
+								}
+							} else {
+								cfgControl.Successors = append(cfgControl.Successors, Edge{instrIdx + 1, ""})
+							}
 						}
 
 					}
@@ -284,7 +302,7 @@ func (cfg *CFG) GetUnreachableCode() ([]uint32, error) {
 		var queue []Edge
 		queue = append(queue, firstCfgNode.Successors...)
 
-		for ; len(queue) > 0; {
+		for len(queue) > 0 {
 			head, tail := queue[0], queue[1:]
 			queue = tail
 			visitedNodes = append(visitedNodes, head.TargetNode)
