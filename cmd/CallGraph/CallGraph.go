@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 	"wasma/pkg/wasma"
 	"wasma/pkg/wasma/graphs/callGraph"
 	"wasma/pkg/wasmp/modules"
@@ -23,7 +24,9 @@ func (callGraphAnalysis *CallGraphAnalysis) Analyze(module *modules.Module, args
 
 	log.Println(fmt.Sprintf("find indirect calls: %v", ic))
 	// create call graph
+	start := time.Now()
 	callGraph, err := callGraph.NewCallGraph(module, ic)
+	log.Printf("Call graph construction for %v took %v\n", args["file"], time.Since(start))
 	if err != nil {
 		log.Fatal(err.Error())
 	}

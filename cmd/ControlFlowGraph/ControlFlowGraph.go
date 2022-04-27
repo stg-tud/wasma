@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 	"wasma/pkg/wasma"
 	"wasma/pkg/wasma/graphs/controlFlowGraph"
 	"wasma/pkg/wasmp/modules"
@@ -24,7 +25,10 @@ func (controlFlowGraphAnalysis *ControlFlowGraphAnalysis) Analyze(module *module
 			log.Fatal(err.Error())
 		}
 		if args["fi"] != "-1" {
+			start := time.Now()
 			cfgs = controlFlowGraph.NewControlFlowGraph(module, false, uint32(funcIdx))
+			log.Printf("Control-flow graph construction for %v took %v\n", args["file"], time.Since(start))
+
 			fileName := strings.TrimSuffix(filepath.Base(args["file"]), filepath.Ext(args["file"])) + fmt.Sprintf("_%v", funcIdx)
 			err := cfgs[uint32(funcIdx)].SaveDot(filepath.Join(args["out"], fileName) + ".dot")
 			if err != nil {
@@ -32,10 +36,14 @@ func (controlFlowGraphAnalysis *ControlFlowGraphAnalysis) Analyze(module *module
 			}
 			return
 		} else {
+			start := time.Now()
 			cfgs = controlFlowGraph.NewControlFlowGraph(module, true, 0)
+			log.Printf("Control-flow graph construction for %v took %v\n", args["file"], time.Since(start))
 		}
 	} else {
+		start := time.Now()
 		cfgs = controlFlowGraph.NewControlFlowGraph(module, true, 0)
+		log.Printf("Control-flow graph construction for %v took %v\n", args["file"], time.Since(start))
 	}
 
 	// save control flow graphs as dot file
