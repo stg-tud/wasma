@@ -156,7 +156,7 @@ Every analysis that has been created using WasmA has the following parameters:
 - **-file**: Specifies a binary file that should be analyzed.
 - **-files**: Specifies a txt file with a list of binary files that should be analyzed.
 - **-out**: Specifies an output directory for the analysis results.
-- **-index**: Specifies the function index to select a specific function for an analysis.
+- **-fi**: Specifies the function index to select a specific function for an analysis.
 - **-log**: Specifies the location for the log file.
 - **-ic**: Flag to specify if indirect calls should be considered.
     
