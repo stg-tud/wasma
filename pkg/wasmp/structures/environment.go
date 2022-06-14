@@ -18,6 +18,7 @@ type Variable struct {
 	VariableDataType   string
 	Value              string
 	LocalGlobalIn      bool
+	Tainted            bool
 }
 
 type Environment interface {
@@ -30,6 +31,7 @@ type Environment interface {
 	SetGlobal(globalIdx uint32, newValue Variable) (Variable, Variable, error)
 	GetGlobal(globalIdx uint32) (Variable, Variable, error)
 	NewParameter(variableDataType string) Variable
+	NewParameterWithTaint(variableDataType string, tainted bool) Variable
 	NewLocal(variableDataType string) Variable
 	NewGlobal(mut byte, variableDataType string) Variable
 	NewVariable(variableDataType string) Variable

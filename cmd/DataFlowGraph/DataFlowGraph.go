@@ -27,7 +27,9 @@ func (dataFlowGraphAnalysis *DataFlowGraphAnalysis) Analyze(module *modules.Modu
 		}
 
 		start := time.Now()
+		// 2 paramter auf true setzen für alle funktionen
 		dfgs := dataFlowGraph.NewDataFlowGraph(module, false, uint32(funcIdx))
+
 		log.Printf("Data-flow graph construction for %v took %v\n", args["file"], time.Since(start))
 
 		fileName := strings.TrimSuffix(filepath.Base(args["file"]), filepath.Ext(args["file"])) + fmt.Sprintf("_%v", funcIdx)
