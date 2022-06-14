@@ -69,7 +69,6 @@ func (dfg *DFG) SaveDot(fileName string) error {
 	//for instrIdx, dataFlowEdge := range dfg.environment.Flow {
 	for instrIdx, _ := range dfg.Environment.Flow {
 		instruction := dfg.Disassembly.DisassembledInstrs[instrIdx].Instruction
-		tainted := dfg.Disassembly.DisassembledInstrs[instrIdx].Tainted
 		var value = ""
 
 		switch instruction.Name() {
@@ -114,11 +113,8 @@ func (dfg *DFG) SaveDot(fileName string) error {
 				value = fmt.Sprintf("%v", f64)
 			}
 		}
-		color := ""
-		if tainted {
-			color = "style=filled, fillcolor=red,"
-		}
-		file.WriteString(fmt.Sprintf("%v ["+color+" label=\"#%v+%v: %v %v\"];\n", instrIdx, dfg.FuncIdx, instrIdx, instruction.Name(), value))
+
+		file.WriteString(fmt.Sprintf("%v [label=\"#%v+%v: %v %v\"];\n", instrIdx, dfg.FuncIdx, instrIdx, instruction.Name(), value))
 	}
 
 	for _, flowEdges := range dfg.Tree {
