@@ -255,6 +255,22 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 						environment.Variables[primaryVariableIdx] = varOut
 						variables[primaryVariableIdx] = varOut
 
+						// also taint vars with same name
+						for varIdx0, varOut0 := range environment.Variables {
+							if varOut0.PrimaryVariableIdx == primaryVariableIdx || varOut0.VariableName == variableName {
+								varOut0.Tainted = true
+								environment.Variables[varIdx0] = varOut0
+							}
+						}
+
+						// also taint vars with same name
+						for varIdx00, varOut00 := range variables {
+							if varOut00.PrimaryVariableIdx == primaryVariableIdx || varOut00.VariableName == variableName {
+								varOut00.Tainted = true
+								variables[varIdx00] = varOut00
+							}
+						}
+
 						for instrIdx2, dataFlowEdge := range environment.Flow {
 							// instruction -> variable
 							for varIdx2, varOut2 := range dataFlowEdge.Input {

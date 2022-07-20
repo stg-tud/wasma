@@ -21,6 +21,17 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 
 	returnValueIsTainted := true
 
+	if importSection, err := module.GetImportSection(); err == nil {
+		for _, customSectionImport := range importSection.Imports {
+			log.Printf("Sections Import: %v", customSectionImport.Imp.Name)
+		}
+	}
+	if exportSection, err := module.GetExportSection(); err == nil {
+		for _, customSectionExport := range exportSection.Exports {
+			log.Printf("Sections Export: %v", customSectionExport.Name)
+		}
+	}
+
 	if funcIdxStr, found := args["fi"]; found {
 		funcIdx, err := strconv.Atoi(funcIdxStr)
 		if err != nil {
@@ -69,6 +80,7 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 	}
 
 	log.Printf("Return value is tainted: %v", returnValueIsTainted)
+
 }
 
 func (taintAnalysis *TaintAnalysis) Name() string {
