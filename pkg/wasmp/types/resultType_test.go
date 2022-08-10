@@ -25,9 +25,9 @@ func TestNewResultType(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF")},
-		{bytes.NewReader([]byte{0x05, 0x7F, 0x7E, 0x7D, 0x7C}), errors.New("EOF")},
-		{bytes.NewReader([]byte{0x04, 0x7F, 0x7E, 0x77, 0x7C}), errors.New("Error while reading result type. Unexpected type got: 77. Valid types: 0x7F, 0x7E, 0x7D and 0x7C.")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF")},
+		{Reader: bytes.NewReader([]byte{0x05, 0x7F, 0x7E, 0x7D, 0x7C}), Err: errors.New("EOF")},
+		{Reader: bytes.NewReader([]byte{0x04, 0x7F, 0x7E, 0x77, 0x7C}), Err: errors.New("Error while reading result type. Unexpected type got: 77. Valid types: 0x7F, 0x7E, 0x7D and 0x7C.")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewResultType(testCase.Reader)
