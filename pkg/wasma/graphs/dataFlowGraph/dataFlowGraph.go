@@ -67,7 +67,7 @@ func (dfg *DFG) SaveDot(fileName string) error {
 	file.WriteString(fmt.Sprintf("return [shape=box, label=\"#%v: return\"];\n", dfg.FuncIdx))
 
 	//for instrIdx, dataFlowEdge := range dfg.environment.Flow {
-	for instrIdx, _ := range dfg.Environment.Flow {
+	for instrIdx := range dfg.Environment.Flow {
 		instruction := dfg.Disassembly.DisassembledInstrs[instrIdx].Instruction
 		var value = ""
 
@@ -148,7 +148,7 @@ func (dfg *DFG) SaveDot(fileName string) error {
 
 var environment *structuresWasma.Environment
 
-func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map[uint32]*DFG {
+func NewDataFlowGraphWithTaint(module *modules.Module, complete bool, funcIdx uint32, funcParams []int) map[uint32]*DFG {
 	// key: FuncIdx
 	dfg := make(map[uint32]*DFG)
 	cfg := controlFlowGraph.NewControlFlowGraph(module, complete, funcIdx)
@@ -159,8 +159,14 @@ func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map
 		functionType, err := code.GetFuncParams(funcIdx, module)
 		if err == nil {
 			// todo taint param
-			for _, param := range functionType.ParameterTypes {
-				environment.NewParameterWithTaint(param, true)
+			for i, param := range functionType.ParameterTypes {
+				tainted := false
+				for _, v := range funcParams {
+					if v == i {
+						tainted = true
+					}
+				}
+				environment.NewParameterWithTaint(param, tainted)
 			}
 		}
 
@@ -186,7 +192,66 @@ func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map
 		// remove duplicates
 		edges := make(map[string]bool)
 
-		for i, _ := range tree {
+		for i := range tree {
+			var flowEdges []FlowEdge
+			for _, flowEdge := range tree[i] {
+				edge := fmt.Sprintf("%v;%v", flowEdge.Input, flowEdge.Output)
+				if _, found := edges[edge]; !found {
+					flowEdges = append(flowEdges, flowEdge)
+					edges[edge] = true
+				}
+			}
+			if len(flowEdges) > 0 {
+				tree[i] = flowEdges
+			} else {
+				delete(tree, i)
+			}
+		}
+
+		dfg[funcIdx] = &DFG{funcIdx, environment, tree, subCfg.Disassembly}
+	}
+	return dfg
+}
+
+func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map[uint32]*DFG {
+	// key: FuncIdx
+	dfg := make(map[uint32]*DFG)
+	cfg := controlFlowGraph.NewControlFlowGraph(module, complete, funcIdx)
+
+	for funcIdx, subCfg := range cfg {
+		environment = structuresWasma.NewEnvironment(module)
+
+		functionType, err := code.GetFuncParams(funcIdx, module)
+		if err == nil {
+			// todo taint param
+			for _, param := range functionType.ParameterTypes {
+				environment.NewParameter(param)
+			}
+		}
+
+		for _, local := range code.GetFuncLocals(funcIdx, module) {
+			environment.NewLocal(local)
+		}
+
+		if globals, startIndex, err := code.GetGlobalsList(module); err == nil {
+			environment.SetGlobalIdx(startIndex)
+			for _, global := range globals {
+				environment.NewGlobal(global.GlobalType.Mut, global.GlobalType.ValType)
+			}
+		}
+
+		if start, found := subCfg.Tree[0]; found {
+			walk(start, subCfg.Tree, make(map[uint32]bool))
+		} else {
+			log.Fatalf("no root node found for function: %v", funcIdx)
+		}
+
+		tree := GetFlowTree(environment)
+
+		// remove duplicates
+		edges := make(map[string]bool)
+
+		for i := range tree {
 			var flowEdges []FlowEdge
 			for _, flowEdge := range tree[i] {
 				edge := fmt.Sprintf("%v;%v", flowEdge.Input, flowEdge.Output)
@@ -336,7 +401,7 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 		output[global.PrimaryVariableIdx] = append(output[global.PrimaryVariableIdx], global.VariableName)
 	}
 
-	for primaryVariableIdx, _ := range variables {
+	for primaryVariableIdx := range variables {
 		if varOuts, found := output[primaryVariableIdx]; found {
 			if varIns, found := input[primaryVariableIdx]; found {
 				for _, varIn := range varIns {
@@ -380,7 +445,7 @@ func walk(node *controlFlowGraph.CFGNode, tree map[uint32]*controlFlowGraph.CFGN
 			node.Instruction.Executor()(node.InstrIdx, node.Instruction, environment)
 		} else {
 			var instrIdxs []uint32
-			for instrIdx, _ := range node.Block {
+			for instrIdx := range node.Block {
 				instrIdxs = append(instrIdxs, instrIdx)
 			}
 			sort.Slice(instrIdxs, func(i, j int) bool {
@@ -388,7 +453,7 @@ func walk(node *controlFlowGraph.CFGNode, tree map[uint32]*controlFlowGraph.CFGN
 			})
 
 			for _, instrIdx := range instrIdxs {
-				instr, _ := node.Block[instrIdx]
+				instr := node.Block[instrIdx]
 				instr.Executor()(instrIdx, instr, environment)
 			}
 		}

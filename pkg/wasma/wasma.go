@@ -23,6 +23,8 @@ type WasmA struct {
 	con        string
 	//analysis              int
 	funcIdx               int
+	funcName              string
+	funcParams            string
 	logFilePath           string
 	considerIndirectCalls string
 }
@@ -43,6 +45,8 @@ func (wasma *WasmA) Start(analysis Analysis) {
 				"out":  wasma.output,
 				"con":  wasma.con,
 				"fi":   strconv.Itoa(wasma.funcIdx),
+				"fn":   wasma.funcName,
+				"fp":   wasma.funcParams,
 				"ic":   wasma.considerIndirectCalls,
 			}
 
@@ -68,6 +72,8 @@ func NewWasmA() WasmA {
 	con := flag.String("con", "", "path to config file")
 	files := flag.String("files", "", "file containing a list of wasm files")
 	funcIdx := flag.Int("fi", -1, "select a function by its function index")
+	funcName := flag.String("fn", "", "select a function by its function name")
+	funcParams := flag.String("fp", "", "select a list of parameters by its argument position seperatet by comma (e.g. 0,3,4)")
 	logFilePath := flag.String("log", "", "log file")
 	findIndirectCalls := flag.String("ic", "true", "if the flag is true indirect calls a considered during the analysis otherwise not (default: true)")
 	//analysesList := flag.Bool("list", false, "if true a list of all available analyses is shown.")
@@ -90,6 +96,10 @@ func NewWasmA() WasmA {
 
 	if *file != "" && *files != "" {
 		log.Fatal("Select only one of the two parameters '-file' or '-files'.")
+	}
+
+	if *funcIdx != -1 && *funcName != "" {
+		log.Fatal("Select only one of the two parameters '-fi' or '-fn'.")
 	}
 
 	if *funcIdx < -1 {
@@ -116,7 +126,7 @@ func NewWasmA() WasmA {
 		log.Printf("log file set to: %v\n", *logFile)
 	}
 
-	return WasmA{Analyses, wasmFiles, *out, *con, *funcIdx, *logFilePath, *findIndirectCalls}
+	return WasmA{Analyses, wasmFiles, *out, *con, *funcIdx, *funcName, *funcParams, *logFilePath, *findIndirectCalls}
 
 }
 
