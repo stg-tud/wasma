@@ -1,15 +1,14 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	values2 "wasma/pkg/wasmp/values"
 )
 
 type Limit struct {
-	Min uint32
-	Max uint32
+	Min  uint32
+	Max  uint32
 	Type byte
 }
 
@@ -39,7 +38,7 @@ func NewLimit(reader io.Reader) (*Limit, error) {
 		}
 		limit.Max = max
 	} else {
-		return limit, errors.New(fmt.Sprintf("Error while reading Limit. Expected 0x00 or 0x01 but got: %x", nextByte))
+		return limit, fmt.Errorf("error while reading Limit. Expected 0x00 or 0x01 but got: %x", nextByte)
 	}
 	return limit, err
 }

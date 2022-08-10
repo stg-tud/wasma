@@ -24,7 +24,7 @@ func TestNewGlobalSection(t *testing.T) {
 	numericInstructionI32.PositionValue = 5
 
 	// Positive test cases
-	positiveTestCases := []TestCaseGlobalSection{{bytes.NewReader([]byte{0x06, 0x06, 0x01, 0x7F, 0x00, 0x41, 0x01, 0x0B}), GlobalSection{0x06, 6, map[uint32]Global{0: {&types.GlobalType{"i32", 0x00}, &instructions2.Expr{[]instructions2.Instruction{numericInstructionI32}}}}, 0, 2}}}
+	positiveTestCases := []TestCaseGlobalSection{{bytes.NewReader([]byte{0x06, 0x06, 0x01, 0x7F, 0x00, 0x41, 0x01, 0x0B}), GlobalSection{0x06, 6, map[uint32]Global{0: {&types.GlobalType{ValType: "i32", Mut: 0x00}, &instructions2.Expr{Instructions: []instructions2.Instruction{numericInstructionI32}}}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -48,7 +48,7 @@ func TestNewGlobalSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewGlobalSection(testCase.Reader)

@@ -24,7 +24,7 @@ func TestNewCodeSection(t *testing.T) {
 
 	// Positive test cases
 	positiveTestCases := []TestCaseCodeSection{{bytes.NewReader([]byte{0x0A, 0x06, 0x01, 0x04, 0x00, 0x41, 0x2A, 0x0B}),
-		CodeSection{0x0A, 6, map[uint32]*Code{0: {4, &Function{[]*Local{}, &instructions2.Expr{[]instructions2.Instruction{numericInstructionI32}}}}}, 0, 2}}}
+		CodeSection{0x0A, 6, map[uint32]*Code{0: {4, &Function{[]*Local{}, &instructions2.Expr{Instructions: []instructions2.Instruction{numericInstructionI32}}}}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -52,7 +52,7 @@ func TestNewCodeSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewCodeSection(testCase.Reader)

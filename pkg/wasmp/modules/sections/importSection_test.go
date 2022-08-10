@@ -22,7 +22,7 @@ func TestNewImportSection(t *testing.T) {
 			0x02,
 			17,
 			[]ImportValue{},
-			map[uint32]*Import{0: &Import{"iTestM", "iTestN", &ImportDesc{0x00, 0x01, &types2.TableType{}, &types2.Limit{}, &types2.GlobalType{}}}},
+			map[uint32]*Import{0: {"iTestM", "iTestN", &ImportDesc{0x00, 0x01, &types2.TableType{}, &types2.Limit{}, &types2.GlobalType{}}}},
 			map[uint32]*Import{},
 			map[uint32]*Import{},
 			map[uint32]*Import{},
@@ -77,7 +77,7 @@ func TestNewImportSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewImportSection(testCase.Reader)
