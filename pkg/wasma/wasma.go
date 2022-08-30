@@ -25,6 +25,7 @@ type WasmA struct {
 	funcIdx               int
 	funcName              string
 	funcParams            string
+	completeDfg           string
 	logFilePath           string
 	considerIndirectCalls string
 }
@@ -47,6 +48,7 @@ func (wasma *WasmA) Start(analysis Analysis) {
 				"fi":   strconv.Itoa(wasma.funcIdx),
 				"fn":   wasma.funcName,
 				"fp":   wasma.funcParams,
+				"cdfg": wasma.completeDfg,
 				"ic":   wasma.considerIndirectCalls,
 			}
 
@@ -74,6 +76,7 @@ func NewWasmA() WasmA {
 	funcIdx := flag.Int("fi", -1, "select a function by its function index")
 	funcName := flag.String("fn", "", "select a function by its function name")
 	funcParams := flag.String("fp", "", "select a list of parameters by its argument position seperatet by comma (e.g. 0,3,4)")
+	completeDfg := flag.String("cdfg", "false", "compute the complete DFG if the parameter is true")
 	logFilePath := flag.String("log", "", "log file")
 	findIndirectCalls := flag.String("ic", "true", "if the flag is true indirect calls a considered during the analysis otherwise not (default: true)")
 	//analysesList := flag.Bool("list", false, "if true a list of all available analyses is shown.")
@@ -126,8 +129,7 @@ func NewWasmA() WasmA {
 		log.Printf("log file set to: %v\n", *logFile)
 	}
 
-	return WasmA{Analyses, wasmFiles, *out, *con, *funcIdx, *funcName, *funcParams, *logFilePath, *findIndirectCalls}
-
+	return WasmA{Analyses, wasmFiles, *out, *con, *funcIdx, *funcName, *funcParams, *completeDfg, *logFilePath, *findIndirectCalls}
 }
 
 func readFileList(fileList string) []string {

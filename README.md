@@ -159,4 +159,5 @@ Every analysis that has been created using WasmA has the following parameters:
 - **-fi**: Specifies the function index to select a specific function for an analysis.
 - **-log**: Specifies the location for the log file.
 - **-ic**: Flag to specify if indirect calls should be considered.
-    
+- **-con**: Path to config file.
+- **-cdfg**: Compute the complete DFG if the parameter is true.

@@ -2,7 +2,6 @@ package dataFlowGraph
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -183,8 +182,6 @@ func NewDataFlowGraphWithTaint(module *modules.Module, complete bool, funcIdx ui
 
 		if start, found := subCfg.Tree[0]; found {
 			walk(start, subCfg.Tree, make(map[uint32]bool))
-		} else {
-			log.Fatalf("taint: no root node found for function: %v", funcIdx)
 		}
 
 		tree := GetFlowTree(environment)
@@ -242,8 +239,6 @@ func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map
 
 		if start, found := subCfg.Tree[0]; found {
 			walk(start, subCfg.Tree, make(map[uint32]bool))
-		} else {
-			log.Fatalf("no root node found for function: %v", funcIdx)
 		}
 
 		tree := GetFlowTree(environment)
