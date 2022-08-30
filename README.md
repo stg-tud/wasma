@@ -161,4 +161,3 @@ Every analysis that has been created using WasmA has the following parameters:
 - **-ic**: Flag to specify if indirect calls should be considered.
 - **-con**: Path to config file.
 - **-cdfg**: Compute the complete DFG if the parameter is true.
-    
