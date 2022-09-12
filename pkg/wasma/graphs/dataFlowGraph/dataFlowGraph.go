@@ -2,6 +2,7 @@ package dataFlowGraph
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -11,6 +12,11 @@ import (
 	"wasma/pkg/wasmp/modules"
 	structuresWasmp "wasma/pkg/wasmp/structures"
 )
+
+type Source struct {
+	Name    string
+	FuncIdx uint32
+}
 
 type FlowEdge struct {
 	Variable structuresWasmp.Variable
@@ -147,66 +153,223 @@ func (dfg *DFG) SaveDot(fileName string) error {
 
 var environment *structuresWasma.Environment
 
-func NewDataFlowGraphWithTaint(module *modules.Module, complete bool, funcIdx uint32, funcParams []int) map[uint32]*DFG {
+func AnalyseTaintOfFunction(module *modules.Module,
+	funcIdx uint32,
+	funcParams []int,
+	sources []Source,
+	cfg map[uint32]*controlFlowGraph.CFG,
+	dfg map[uint32]*DFG,
+	visited map[uint32]bool) map[uint32]*DFG {
+
+	visited[funcIdx] = true
+
+	subCfg := cfg[funcIdx]
+	subEnvironment := structuresWasma.NewEnvironment(module)
+
+	functionType, err := code.GetFuncParams(funcIdx, module)
+	if err == nil {
+		// todo taint param only if function id matches?
+		for i, param := range functionType.ParameterTypes {
+			tainted := false
+			for _, v := range funcParams {
+				if v == i {
+					tainted = true
+				}
+			}
+			subEnvironment.NewParameterWithTaint(param, tainted)
+		}
+	}
+
+	for _, local := range code.GetFuncLocals(funcIdx, module) {
+		subEnvironment.NewLocal(local)
+	}
+
+	if globals, startIndex, err := code.GetGlobalsList(module); err == nil {
+		subEnvironment.SetGlobalIdx(startIndex)
+		for _, global := range globals {
+			subEnvironment.NewGlobal(global.GlobalType.Mut, global.GlobalType.ValType)
+		}
+	}
+
+	environment = subEnvironment
+
+	if start, found := subCfg.Tree[0]; found {
+		walk(start, subCfg.Tree, make(map[uint32]bool))
+	}
+
+	// search for function calls and start analysis there
+	for instrIdx, dataFlowEdgeOuter := range subEnvironment.Flow {
+		instruction := subCfg.Disassembly.DisassembledInstrs[instrIdx].Instruction
+
+		var foundNewFunctions []uint32
+
+		switch instruction.Name() {
+		case "call":
+			{
+				if funcIdxFromCall, error := instruction.Funcidx(); !visited[funcIdxFromCall] && error == nil {
+					foundNewFunctions = append(foundNewFunctions, funcIdxFromCall)
+				}
+			}
+		case "call_indirect":
+			{
+				typeIdx, err := instruction.Typeidx()
+				if err != nil {
+					log.Fatal(err.Error())
+				}
+				if functionSection, err := module.GetFunctionSection(); err == nil {
+					var funcIdxs []uint32
+					// select all functions with the given type index
+					if fIdxs, found := functionSection.FuncIdxs[typeIdx]; found {
+						funcIdxs = fIdxs
+					} else {
+						funcIdxs = []uint32{}
+					}
+
+					// select all imported functions with the given type index
+					if importSection, err := module.GetImportSection(); err == nil {
+						if importFuncIdxs, found := importSection.FuncIdxs[typeIdx]; found {
+							// add imported functions
+							funcIdxs = append(funcIdxs, importFuncIdxs...)
+						}
+
+					}
+					for _, funcIdx := range funcIdxs {
+						if elementSection, err := module.GetElementSection(); err == nil {
+							if _, found := elementSection.FuncIdxs[funcIdx]; found {
+								// Only add the FuncIdx for indirect calls if the given
+								// FuncIdx is an element of the funcRef table.
+								if _, error := instruction.Typeidx(); !visited[funcIdx] && error == nil {
+									foundNewFunctions = append(foundNewFunctions, funcIdx)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for _, foundNewFunction := range foundNewFunctions {
+			// not an exported function
+			var importedFunctions []uint32
+			if importSection, err := module.GetImportSection(); err == nil {
+				for _, customSectionImport := range importSection.Imports {
+					importedFunctions = append(importedFunctions, customSectionImport.Index)
+				}
+			}
+			contains := false
+			for _, importedFunction := range importedFunctions {
+				if importedFunction == foundNewFunction {
+					contains = true
+					visited[foundNewFunction] = true
+				}
+			}
+			if !contains {
+
+				dfg = AnalyseTaintOfFunction(module,
+					foundNewFunction,
+					// todo: make dynamic
+					[]int{0, 1, 2, 3, 4, 5, 6},
+					sources,
+					cfg,
+					dfg,
+					visited)
+
+				// taint return value from call
+				for _, dataFlowEdges := range dfg[foundNewFunction].Tree {
+					for _, dataFlowEdge := range dataFlowEdges {
+						//	if varIns := dataFlowEdge.Input; varIns == "return" {
+						if dataFlowEdge.Tainted || true {
+							// taint call
+							for _, varOut := range dataFlowEdgeOuter.Output {
+								varOut.Tainted = true
+								primaryVariableIdx := varOut.PrimaryVariableIdx
+								variableName := varOut.VariableName
+								//environment.Flow[instrIdx].Output[primaryVariableIdx] = varOut
+								subEnvironment.Variables[primaryVariableIdx] = varOut
+
+								// also taint vars with same name
+								for varIdx0, varOut0 := range subEnvironment.Variables {
+									if varOut0.PrimaryVariableIdx == primaryVariableIdx || varOut0.VariableName == variableName {
+										varOut0.Tainted = true
+										subEnvironment.Variables[varIdx0] = varOut0
+									}
+								}
+
+								for instrIdx2, dataFlowEdge := range subEnvironment.Flow {
+									// instruction -> variable
+									for varIdx2, varOut2 := range dataFlowEdge.Input {
+										if varOut2.PrimaryVariableIdx == primaryVariableIdx || varOut2.VariableName == variableName {
+											varOut2.Tainted = true
+											subEnvironment.Flow[instrIdx2].Input[varIdx2] = varOut2
+										}
+									}
+									for varIdx3, varOut3 := range dataFlowEdge.Output {
+										if varOut3.PrimaryVariableIdx == primaryVariableIdx || varOut3.VariableName == variableName {
+											varOut3.Tainted = true
+											subEnvironment.Flow[instrIdx2].Output[varIdx3] = varOut3
+										}
+									}
+								}
+							}
+						}
+					}
+					//}
+				}
+			}
+		}
+	}
+
+	tree := GetFlowTreeWithTaint(subEnvironment, sources, subCfg)
+
+	// remove duplicates
+	edges := make(map[string]bool)
+
+	for i := range tree {
+		var flowEdges []FlowEdge
+		for _, flowEdge := range tree[i] {
+			edge := fmt.Sprintf("%v;%v", flowEdge.Input, flowEdge.Output)
+			if _, found := edges[edge]; !found {
+				flowEdges = append(flowEdges, flowEdge)
+				edges[edge] = true
+			}
+		}
+		if len(flowEdges) > 0 {
+			tree[i] = flowEdges
+		} else {
+			delete(tree, i)
+		}
+	}
+
+	dfg[funcIdx] = &DFG{funcIdx, subEnvironment, tree, subCfg.Disassembly}
+
+	environment = subEnvironment
+
+	return dfg
+}
+
+func NewDataFlowGraphWithTaint(module *modules.Module, complete bool, funcIdx uint32, funcParams []int, sources []Source) map[uint32]*DFG {
 	// key: FuncIdx
 	dfg := make(map[uint32]*DFG)
 	cfg := controlFlowGraph.NewControlFlowGraph(module, complete, funcIdx)
+	visited := make(map[uint32]bool)
 
-	for funcIdx, subCfg := range cfg {
-		environment = structuresWasma.NewEnvironment(module)
+	dfg = AnalyseTaintOfFunction(module, funcIdx, funcParams, sources, cfg, dfg, visited)
 
-		functionType, err := code.GetFuncParams(funcIdx, module)
-		if err == nil {
-			// todo taint param
-			for i, param := range functionType.ParameterTypes {
-				tainted := false
-				for _, v := range funcParams {
-					if v == i {
-						tainted = true
-					}
-				}
-				environment.NewParameterWithTaint(param, tainted)
-			}
-		}
+	// debug
+	// print all tainted vars
+	log.Printf("Visited functions %v\n", visited)
 
-		for _, local := range code.GetFuncLocals(funcIdx, module) {
-			environment.NewLocal(local)
-		}
+	//for visitedFunctionIdx, dataFlowGraph := range dfg {
+	//	for _, tree := range dataFlowGraph.Tree {
+	//		for flowIdx, flow := range tree {
+	//			if flow.Tainted || flow.Variable.Tainted {
+	//				log.Printf("Tainted function %v with flow %v. Flowname: %v \n", visitedFunctionIdx, flowIdx, flow.Variable.VariableName)
+	//			}
+	//		}
+	//	}
+	//}
 
-		if globals, startIndex, err := code.GetGlobalsList(module); err == nil {
-			environment.SetGlobalIdx(startIndex)
-			for _, global := range globals {
-				environment.NewGlobal(global.GlobalType.Mut, global.GlobalType.ValType)
-			}
-		}
-
-		if start, found := subCfg.Tree[0]; found {
-			walk(start, subCfg.Tree, make(map[uint32]bool))
-		}
-
-		tree := GetFlowTree(environment)
-
-		// remove duplicates
-		edges := make(map[string]bool)
-
-		for i := range tree {
-			var flowEdges []FlowEdge
-			for _, flowEdge := range tree[i] {
-				edge := fmt.Sprintf("%v;%v", flowEdge.Input, flowEdge.Output)
-				if _, found := edges[edge]; !found {
-					flowEdges = append(flowEdges, flowEdge)
-					edges[edge] = true
-				}
-			}
-			if len(flowEdges) > 0 {
-				tree[i] = flowEdges
-			} else {
-				delete(tree, i)
-			}
-		}
-
-		dfg[funcIdx] = &DFG{funcIdx, environment, tree, subCfg.Disassembly}
-	}
+	// find calls
 	return dfg
 }
 
@@ -267,7 +430,7 @@ func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map
 	return dfg
 }
 
-func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge {
+func GetFlowTreeWithTaint(environment *structuresWasma.Environment, sources []Source, cfg *controlFlowGraph.CFG) map[uint32][]FlowEdge {
 	// key: variableIdx
 	variables := make(map[uint32]structuresWasmp.Variable)
 	// key: variableIdx
@@ -276,6 +439,87 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 	output := make(map[uint32][]string)
 	// key: variableIdx
 	tree := make(map[uint32][]FlowEdge)
+
+	// taint sources
+	for instrIdx, dataFlowEdge := range environment.Flow {
+		instruction := cfg.Disassembly.DisassembledInstrs[instrIdx].Instruction
+
+		isSourceCall := false
+
+		instruction.Name()
+
+		switch instruction.Name() {
+		case "call":
+			{
+				for _, source := range sources {
+					if funcidx, error := instruction.Funcidx(); funcidx == source.FuncIdx && error == nil {
+						isSourceCall = true
+					} else {
+						instruction.Funcidx()
+					}
+				}
+
+			}
+		case "call_indirect":
+			{
+				//for _, source := range sources {
+				// if could be indirect call
+
+				//if funcidx, error := instruction.Typeidx(); funcidx == source.FuncIdx && error == nil {
+				//	isSourceCall = true
+				//} else {
+				//	instruction.Funcidx()
+				//}
+				//}
+			}
+		}
+
+		if isSourceCall {
+			// taint the instruction/variable itself
+
+			for _, varOut := range dataFlowEdge.Output {
+				varOut.Tainted = true
+				primaryVariableIdx := varOut.PrimaryVariableIdx
+				variableName := varOut.VariableName
+				//environment.Flow[instrIdx].Output[primaryVariableIdx] = varOut
+				environment.Variables[primaryVariableIdx] = varOut
+				variables[primaryVariableIdx] = varOut
+
+				// also taint vars with same name
+				for varIdx0, varOut0 := range environment.Variables {
+					if varOut0.PrimaryVariableIdx == primaryVariableIdx || varOut0.VariableName == variableName {
+						varOut0.Tainted = true
+						environment.Variables[varIdx0] = varOut0
+					}
+				}
+
+				// also taint vars with same name
+				for varIdx00, varOut00 := range variables {
+					if varOut00.PrimaryVariableIdx == primaryVariableIdx || varOut00.VariableName == variableName {
+						varOut00.Tainted = true
+						variables[varIdx00] = varOut00
+					}
+				}
+
+				for instrIdx2, dataFlowEdge := range environment.Flow {
+					// instruction -> variable
+					for varIdx2, varOut2 := range dataFlowEdge.Input {
+						if varOut2.PrimaryVariableIdx == primaryVariableIdx || varOut2.VariableName == variableName {
+							varOut2.Tainted = true
+							environment.Flow[instrIdx2].Input[varIdx2] = varOut2
+						}
+					}
+					for varIdx3, varOut3 := range dataFlowEdge.Output {
+						if varOut3.PrimaryVariableIdx == primaryVariableIdx || varOut3.VariableName == variableName {
+							varOut3.Tainted = true
+							environment.Flow[instrIdx2].Output[varIdx3] = varOut3
+						}
+					}
+				}
+
+			}
+		}
+	}
 
 	for instrIdx, dataFlowEdge := range environment.Flow {
 		// variable -> instruction
@@ -300,7 +544,8 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 		}
 	}
 
-	for i := 0; i < 1000; i++ {
+	// todo make more efficient
+	for i := 0; i < 3000; i++ {
 		// propagate taint
 
 		for _, dataFlowEdge := range environment.Flow {
@@ -351,39 +596,6 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 				}
 			}
 		}
-
-		// propagate taint
-		/*
-			for _, dataFlowEdge := range environment.Flow {
-				// instruction -> variable
-				for _, varOut := range dataFlowEdge.Output {
-					if varOut.Tainted {
-						for _, varIn := range dataFlowEdge.Input {
-
-							varIn.Tainted = true
-							primaryVariableIdx := varIn.PrimaryVariableIdx
-							//environment.Flow[instrIdx].Output[varIdx] = varIn
-							environment.Variables[primaryVariableIdx] = varIn
-							variables[primaryVariableIdx] = varIn
-
-							for instrIdx2, dataFlowEdge := range environment.Flow {
-								// instruction -> variable
-								for varIdx2, varOut2 := range dataFlowEdge.Input {
-									if varOut2.PrimaryVariableIdx == primaryVariableIdx {
-										environment.Flow[instrIdx2].Input[varIdx2] = varIn
-									}
-								}
-								for varIdx3, varOut3 := range dataFlowEdge.Output {
-									if varOut3.PrimaryVariableIdx == primaryVariableIdx {
-										environment.Flow[instrIdx2].Output[varIdx3] = varIn
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		*/
 	}
 
 	// add output for locals
@@ -433,6 +645,140 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 	return tree
 }
 
+func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge {
+	// key: variableIdx
+	variables := make(map[uint32]structuresWasmp.Variable)
+	// key: variableIdx
+	input := make(map[uint32][]string)
+	// key: variableIdx
+	output := make(map[uint32][]string)
+	// key: variableIdx
+	tree := make(map[uint32][]FlowEdge)
+
+	for instrIdx, dataFlowEdge := range environment.Flow {
+		// variable -> instruction
+		for _, varIn := range dataFlowEdge.Input {
+			variables[varIn.PrimaryVariableIdx] = varIn
+			input[varIn.PrimaryVariableIdx] = append(input[varIn.PrimaryVariableIdx], fmt.Sprintf("%v", instrIdx))
+		}
+	}
+
+	for instrIdx, dataFlowEdge := range environment.Flow {
+		// instruction -> variable
+		for _, varOut := range dataFlowEdge.Output {
+			variables[varOut.PrimaryVariableIdx] = varOut
+			output[varOut.PrimaryVariableIdx] = append(output[varOut.PrimaryVariableIdx], fmt.Sprintf("%v", instrIdx))
+
+			// add input for locals and globals
+			if _, found := input[varOut.PrimaryVariableIdx]; !found {
+				if varOut.LocalGlobalIn && (varOut.VariableType == "P" || varOut.VariableType == "L" || varOut.VariableType == "GC" || varOut.VariableType == "GM") {
+					input[varOut.PrimaryVariableIdx] = append(input[varOut.PrimaryVariableIdx], varOut.VariableName)
+				}
+			}
+		}
+	}
+
+	//for i := 0; i < 1000; i++ {
+	// propagate taint
+
+	for _, dataFlowEdge := range environment.Flow {
+		// variable -> instruction
+		for _, varIn := range dataFlowEdge.Input {
+			if varIn.Tainted {
+				for _, varOut := range dataFlowEdge.Output {
+					varOut.Tainted = true
+					primaryVariableIdx := varOut.PrimaryVariableIdx
+					variableName := varOut.VariableName
+					//environment.Flow[instrIdx].Output[primaryVariableIdx] = varOut
+					environment.Variables[primaryVariableIdx] = varOut
+					variables[primaryVariableIdx] = varOut
+
+					// also taint vars with same name
+					for varIdx0, varOut0 := range environment.Variables {
+						if varOut0.PrimaryVariableIdx == primaryVariableIdx || varOut0.VariableName == variableName {
+							varOut0.Tainted = true
+							environment.Variables[varIdx0] = varOut0
+						}
+					}
+
+					// also taint vars with same name
+					for varIdx00, varOut00 := range variables {
+						if varOut00.PrimaryVariableIdx == primaryVariableIdx || varOut00.VariableName == variableName {
+							varOut00.Tainted = true
+							variables[varIdx00] = varOut00
+						}
+					}
+
+					for instrIdx2, dataFlowEdge := range environment.Flow {
+						// instruction -> variable
+						for varIdx2, varOut2 := range dataFlowEdge.Input {
+							if varOut2.PrimaryVariableIdx == primaryVariableIdx || varOut2.VariableName == variableName {
+								varOut2.Tainted = true
+								environment.Flow[instrIdx2].Input[varIdx2] = varOut2
+							}
+						}
+						for varIdx3, varOut3 := range dataFlowEdge.Output {
+							if varOut3.PrimaryVariableIdx == primaryVariableIdx || varOut3.VariableName == variableName {
+								varOut3.Tainted = true
+								environment.Flow[instrIdx2].Output[varIdx3] = varOut3
+							}
+						}
+					}
+
+				}
+			}
+		}
+	}
+
+	// add output for locals
+	for _, local := range environment.Locals {
+		output[local.PrimaryVariableIdx] = append(output[local.PrimaryVariableIdx], local.VariableName)
+	}
+
+	// add output for globals
+	for _, global := range environment.Globals {
+		output[global.PrimaryVariableIdx] = append(output[global.PrimaryVariableIdx], global.VariableName)
+	}
+
+	for primaryVariableIdx := range variables {
+		if varOuts, found := output[primaryVariableIdx]; found {
+			if varIns, found := input[primaryVariableIdx]; found {
+				for _, varIn := range varIns {
+					for _, varOut := range varOuts {
+						tainted := false
+						if variables[primaryVariableIdx].Tainted {
+							tainted = true
+						}
+						tree[primaryVariableIdx] = append(
+							tree[primaryVariableIdx],
+							FlowEdge{variables[primaryVariableIdx],
+								varOut,
+								varIn,
+								tainted})
+					}
+				}
+			} else {
+				for _, varOut := range varOuts {
+					tainted := false
+					if variables[primaryVariableIdx].Tainted {
+						tainted = true
+					}
+					tree[primaryVariableIdx] = append(
+						tree[primaryVariableIdx],
+						FlowEdge{variables[primaryVariableIdx],
+							varOut,
+							"return",
+							tainted})
+				}
+			}
+		}
+	}
+
+	return tree
+}
+
+/* Input a node that will be the start node in the tree
+   Output visited map with functionIdx as key and a bool value that indicates if the node is on the path  */
 func walk(node *controlFlowGraph.CFGNode, tree map[uint32]*controlFlowGraph.CFGNode, visited map[uint32]bool) {
 	if _, found := visited[node.InstrIdx]; !found {
 

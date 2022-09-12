@@ -16,7 +16,43 @@
                 "-fn",
                 "concat",
                 "-fp",
-                "1",
+                "0,1,2,2,4",
+                "-ic",
+                "true"
+                ],
+        },
+        {
+            "name": "Launch Wasi Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": [
+                "-file",
+                "${workspaceRoot}/../wasiExample/wasi_write_to_file/target/wasm32-wasi/debug/wasi_write_to_file.wasm",
+                "-fn",
+                "main",
+                "-fp",
+                "",
+                "-ic",
+                "true"
+                ],
+        },
+        {
+            "name": "Launch Wasi Package 470",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "args": [
+                "-file",
+                "${workspaceRoot}/../wasiExample/wasi_write_to_file/target/wasm32-wasi/debug/wasi_write_to_file.wasm",
+                "-fi",
+                "470",
+                "-fp",
+                "",
+                "-ic",
+                "true"
                 ],
         }
     ]
