@@ -60,8 +60,8 @@ func (taintAnalysis *TaintAnalysis) GetIdOfEntrypointFunction(args map[string]st
 	return funcIdx
 }
 
-func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]string) []int {
-	praramsToCheck := []int{}
+func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]string) []uint32 {
+	praramsToCheck := []uint32{}
 	if funcParams, found := args["fp"]; found {
 		if funcParams != "" {
 			praramsToCheckStr := strings.Split(funcParams, ",")
@@ -70,7 +70,7 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 				if err != nil {
 					panic(err)
 				}
-				praramsToCheck = append(praramsToCheck, j)
+				praramsToCheck = append(praramsToCheck, uint32(j))
 			}
 		}
 	}
@@ -78,7 +78,6 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSources() []string {
-	//knownSources := []string{"asd", "asd"}
 	knownSources := []string{"fd_read", "args_get"}
 	return knownSources
 }
@@ -206,21 +205,23 @@ func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG
 }
 
 // Analyze
-// This analysis creates a control flow graph of the given.
+// This analysis creates a taint flow graph of the given.
 func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[string]string) {
 
 	returnValueIsTainted := false
 
-	if importSection, err := module.GetImportSection(); err == nil {
-		for _, customSectionImport := range importSection.Imports {
-			log.Printf("Sections Import: %v %v", customSectionImport.Index, customSectionImport.Imp.Name)
+	/*
+		if importSection, err := module.GetImportSection(); err == nil {
+			for _, customSectionImport := range importSection.Imports {
+				log.Printf("Sections Import: %v %v", customSectionImport.Index, customSectionImport.Imp.Name)
+			}
 		}
-	}
-	if exportSection, err := module.GetExportSection(); err == nil {
-		for _, customSectionExport := range exportSection.Exports {
-			log.Printf("Sections Export: %v %v", customSectionExport.ExportDesc.FuncIdx, customSectionExport.Name)
+		if exportSection, err := module.GetExportSection(); err == nil {
+			for _, customSectionExport := range exportSection.Exports {
+				log.Printf("Sections Export: %v %v", customSectionExport.ExportDesc.FuncIdx, customSectionExport.Name)
+			}
 		}
-	}
+	*/
 
 	funcIdx := taintAnalysis.GetIdOfEntrypointFunction(args, module)
 	paramsToCheck := taintAnalysis.GetInitialTaintedParameters(args)
@@ -239,20 +240,17 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 		log.Printf("No sinks found\n")
 	} else {
 		for funcId, sink := range sinks {
-			log.Printf("Sink found %v %v\n", funcId, sink)
+			log.Printf("Sink with id %v and object %v found\n", funcId, sink)
 		}
 	}
 
 	//get taint of return value
-	// todo make sure we find only the return of the main function
-	for _, dataFlowGraph := range dfgs {
-		for _, dataFlowEdges := range dataFlowGraph.Tree {
-			for _, dataFlowEdge := range dataFlowEdges {
-				if varIns := dataFlowEdge.Input; varIns == "return" {
-					if dataFlowEdge.Tainted {
-						returnValueIsTainted = true
-						//log.Printf("Return found %v %v %v\n", dataFlowEdge.Variable.VariableName, dataFlowEdge.Output, dataFlowEdge.Tainted)
-					}
+	for _, dataFlowEdges := range dfgs[funcIdx].Tree {
+		for _, dataFlowEdge := range dataFlowEdges {
+			if varIns := dataFlowEdge.Input; varIns == "return" {
+				if dataFlowEdge.Tainted {
+					returnValueIsTainted = true
+					//log.Printf("Return found %v %v %v\n", dataFlowEdge.Variable.VariableName, dataFlowEdge.Output, dataFlowEdge.Tainted)
 				}
 			}
 		}

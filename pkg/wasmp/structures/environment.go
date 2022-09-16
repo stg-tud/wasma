@@ -4,6 +4,11 @@ import (
 	"wasma/pkg/wasmp/types"
 )
 
+type MemoryEntry struct {
+	Value   string
+	Tainted bool
+}
+
 type Variable struct {
 	// Types:
 	// - P = parameter

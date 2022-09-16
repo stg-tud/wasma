@@ -32,6 +32,9 @@ type Environment struct {
 	ReturnPoints map[uint32]string
 	// key: instrIdx
 	Flow map[uint32]DataFlowEdge
+	// key: Adress in memory
+	Memory                map[uint32]structures.MemoryEntry
+	IsEntireMemoryTainted bool
 }
 
 func (environment *Environment) SetGlobalIdx(newValue uint32) {
