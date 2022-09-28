@@ -158,11 +158,12 @@ func (environment *Environment) GetGlobal(globalIdx uint32) (structures.Variable
 }
 
 func (environment *Environment) NewParameter(variableDataType string) structures.Variable {
-	newParameter := environment.NewParameterWithTaint(variableDataType, false)
+	taint := structures.Taint{Tainted: false}
+	newParameter := environment.NewParameterWithTaint(variableDataType, taint)
 	return newParameter
 }
 
-func (environment *Environment) NewParameterWithTaint(variableDataType string, tainted bool) structures.Variable {
+func (environment *Environment) NewParameterWithTaint(variableDataType string, taint structures.Taint) structures.Variable {
 	newParameter := structures.Variable{
 		VariableType:       "P",
 		PrimaryVariableIdx: environment.primaryVariableIdx,
@@ -170,7 +171,7 @@ func (environment *Environment) NewParameterWithTaint(variableDataType string, t
 		VariableDataType:   variableDataType,
 		Value:              "unknown",
 		LocalGlobalIn:      false,
-		Tainted:            tainted}
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newParameter
 	environment.Locals[environment.localIdx] = newParameter
 	environment.primaryVariableIdx++
@@ -179,6 +180,7 @@ func (environment *Environment) NewParameterWithTaint(variableDataType string, t
 }
 
 func (environment *Environment) NewLocal(variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newLocal := structures.Variable{
 		VariableType:       "L",
 		PrimaryVariableIdx: environment.primaryVariableIdx,
@@ -186,7 +188,7 @@ func (environment *Environment) NewLocal(variableDataType string) structures.Var
 		VariableDataType:   variableDataType,
 		Value:              "unknown",
 		LocalGlobalIn:      false,
-		Tainted:            false}
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newLocal
 	environment.Locals[environment.localIdx] = newLocal
 	environment.primaryVariableIdx++
@@ -201,6 +203,7 @@ func (environment *Environment) NewGlobal(mut byte, variableDataType string) str
 	} else {
 		variableType = "GM"
 	}
+	taint := structures.Taint{Tainted: false}
 	newGlobal := structures.Variable{
 		VariableType:       variableType,
 		PrimaryVariableIdx: environment.primaryVariableIdx,
@@ -208,7 +211,7 @@ func (environment *Environment) NewGlobal(mut byte, variableDataType string) str
 		VariableDataType:   variableDataType,
 		Value:              "unknown",
 		LocalGlobalIn:      false,
-		Tainted:            false}
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newGlobal
 	environment.Globals[environment.globalIdx] = newGlobal
 	environment.primaryVariableIdx++
@@ -216,6 +219,7 @@ func (environment *Environment) NewGlobal(mut byte, variableDataType string) str
 	return newGlobal
 }
 func (environment *Environment) NewVariable(variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newVariable := structures.Variable{
 		VariableType:       "V",
 		PrimaryVariableIdx: environment.primaryVariableIdx,
@@ -223,13 +227,14 @@ func (environment *Environment) NewVariable(variableDataType string) structures.
 		VariableDataType:   variableDataType,
 		Value:              "unknown",
 		LocalGlobalIn:      false,
-		Tainted:            false}
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newVariable
 	environment.primaryVariableIdx++
 	environment.variableIdx++
 	return newVariable
 }
 func (environment *Environment) NewConstant(value string, variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newConstant := structures.Variable{
 		VariableType:       "C",
 		PrimaryVariableIdx: environment.primaryVariableIdx,
@@ -237,7 +242,7 @@ func (environment *Environment) NewConstant(value string, variableDataType strin
 		VariableDataType:   variableDataType,
 		Value:              value,
 		LocalGlobalIn:      false,
-		Tainted:            false}
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newConstant
 	environment.primaryVariableIdx++
 	environment.constantIdx++

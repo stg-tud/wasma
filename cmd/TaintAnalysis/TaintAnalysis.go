@@ -10,13 +10,8 @@ import (
 	"wasma/pkg/wasma"
 	"wasma/pkg/wasma/graphs/dataFlowGraph"
 	"wasma/pkg/wasmp/modules"
+	"wasma/pkg/wasmp/structures"
 )
-
-type FunctionCall struct {
-	funcIdx     uint32
-	instruction string
-	name        string
-}
 
 type TaintAnalysis struct {
 }
@@ -60,8 +55,8 @@ func (taintAnalysis *TaintAnalysis) GetIdOfEntrypointFunction(args map[string]st
 	return funcIdx
 }
 
-func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]string) []uint32 {
-	praramsToCheck := []uint32{}
+func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]string) map[uint32]structures.Taint {
+	praramsToCheck := make(map[uint32]structures.Taint)
 	if funcParams, found := args["fp"]; found {
 		if funcParams != "" {
 			praramsToCheckStr := strings.Split(funcParams, ",")
@@ -70,7 +65,7 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 				if err != nil {
 					panic(err)
 				}
-				praramsToCheck = append(praramsToCheck, uint32(j))
+				praramsToCheck[uint32(j)] = structures.Taint{Tainted: true}
 			}
 		}
 	}
@@ -87,39 +82,41 @@ func (taintAnalysis *TaintAnalysis) GetKnownSinks() []string {
 	return knownSinks
 }
 
-func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG, module *modules.Module) map[uint32][]FunctionCall {
+func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG, module *modules.Module) map[uint32][]structures.Taint {
 
 	// get calls to sinks from flow
 	// how are function params given to call
 	// see if they are tainted
 	// if var coresponding to call is tainted add to sinks
-	foundSinks := make(map[uint32][]FunctionCall)
+	foundSinks := make(map[uint32][]structures.Taint)
 	for dfgId, dataFlowGraph := range dfgs {
 
 		for instrIdx, dataFlowEdge := range dataFlowGraph.Environment.Flow {
 			instruction := dataFlowGraph.Disassembly.DisassembledInstrs[instrIdx].Instruction
 
-			var functionCall FunctionCall
+			var functionCall structures.FunctionCall
 			isCall := false
 			isCallTainted := false
+			var taint structures.Taint
 
 			switch instruction.Name() {
 			case "call":
 				{
-					functionCall.instruction = instruction.ToString()
+					functionCall.Instruction = instruction.ToString()
 					isCall = true
 				}
 			case "call_indirect":
 				{
-					functionCall.instruction = fmt.Sprintf("indirect %v", instruction.ToString())
+					functionCall.Instruction = fmt.Sprintf("indirect %v", instruction.ToString())
 					isCall = true
 				}
 			}
 
 			if isCall {
 				for _, varIn := range dataFlowEdge.Input {
-					if varIn.Tainted {
+					if varIn.Taint.Tainted {
 						isCallTainted = true
+						taint = varIn.Taint
 						// log.Printf("Taint in call found %v %v %v\n", varIn.VariableName, dataFlowEdge.Input, varIn.Tainted)
 					}
 				}
@@ -135,30 +132,31 @@ func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG
 
 				if importSection, err := module.GetImportSection(); err == nil {
 					if val, ok := importSection.FuncImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.TableImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.MemImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.GlobalImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
-					functionCall.funcIdx = functionIdx
+					functionCall.FuncIdx = functionIdx
 
 				} else {
 					log.Printf("Error %v with instruction %v", error, instruction.Name())
 				}
 
 				for _, knownSink := range taintAnalysis.GetKnownSinks() {
-					if functionCall.name == knownSink {
-						foundSinks[dfgId] = append(foundSinks[dfgId], functionCall)
+					if functionCall.Name == knownSink {
+						taint.Sink = functionCall
+						foundSinks[dfgId] = append(foundSinks[dfgId], taint)
 					}
 				}
 			} else {
@@ -171,29 +169,29 @@ func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG
 
 				if importSection, err := module.GetImportSection(); err == nil {
 					if val, ok := importSection.FuncImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.TableImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.MemImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
 					if val, ok := importSection.GlobalImports[functionIdx]; ok {
-						functionCall.name = val.Name
+						functionCall.Name = val.Name
 					}
 
-					functionCall.funcIdx = functionIdx
+					functionCall.FuncIdx = functionIdx
 
 				} else {
 					log.Printf("Error %v with instruction %v", error, instruction.Name())
 				}
 
 				for _, knownSink := range taintAnalysis.GetKnownSinks() {
-					if functionCall.name == knownSink {
+					if functionCall.Name == knownSink {
 						log.Printf("Found no sink without taint in %v with instruction name %v", dfgId, instruction.Name())
 					}
 				}
@@ -239,8 +237,10 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 	if len(sinks) == 0 {
 		log.Printf("No sinks found\n")
 	} else {
-		for funcId, sink := range sinks {
-			log.Printf("Sink with id %v and object %v found\n", funcId, sink)
+		for funcId, sinkArray := range sinks {
+			for sinkId, sink := range sinkArray {
+				log.Printf("Sink %v in function id %v and sourceFuncIdx %v, sourceText %v%v, sinkFuncIdx %v, sinkText %v%v found\n", sinkId, funcId, sink.Source.FuncIdx, sink.Source.Instruction, sink.Source.Name, sink.Sink.FuncIdx, sink.Sink.Instruction, sink.Sink.Name)
+			}
 		}
 	}
 
