@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -73,13 +75,35 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSources() []string {
-	knownSources := []string{"fd_read", "args_get"}
+	knownSources := ReadKnownStringsFile("../knownSources.txt") //[]string{"fd_read", "args_get"}
 	return knownSources
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSinks() []string {
-	knownSinks := []string{"fd_write"}
+	knownSinks := ReadKnownStringsFile("../knownSinks.txt") //[]string{"fd_write"}
 	return knownSinks
+}
+
+func ReadKnownStringsFile(filename string) []string {
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	sc := bufio.NewScanner(file)
+	lines := make([]string, 0)
+
+	// Read through 'tokens' until an EOF is encountered.
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+
+	if err := sc.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return lines
 }
 
 func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG, module *modules.Module) map[uint32][]structures.Taint {
