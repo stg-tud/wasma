@@ -161,7 +161,9 @@ func AnalyseTaintOfFunction(module *modules.Module,
 	sources []Source,
 	cfg map[uint32]*controlFlowGraph.CFG,
 	dfg map[uint32]*DFG,
-	visited map[uint32]bool) map[uint32]*DFG {
+	visited map[uint32]bool,
+	uses_indirect_call *bool,
+	uses_memory *bool) map[uint32]*DFG {
 
 	visited[funcIdx] = true
 
@@ -225,6 +227,7 @@ func AnalyseTaintOfFunction(module *modules.Module,
 			}
 		case "call_indirect":
 			{
+				*uses_indirect_call = true
 				//for _, source := range sources {
 				// if could be indirect call
 
@@ -238,6 +241,7 @@ func AnalyseTaintOfFunction(module *modules.Module,
 		case "i32.store", "i64.store", "f32.store", "f64.store", "i32.store8", "i32.store16", "i64.store8", "i64.store16", "i64.store32":
 			{
 				isEntireMemoryTainted = true
+				*uses_memory = true
 			}
 		}
 
@@ -486,7 +490,9 @@ func AnalyseTaintOfFunction(module *modules.Module,
 					sources,
 					cfg,
 					dfg,
-					visited)
+					visited,
+					uses_indirect_call,
+					uses_memory)
 
 				// taint return value from call
 
@@ -561,13 +567,16 @@ func AnalyseTaintOfFunction(module *modules.Module,
 	return dfg
 }
 
-func NewDataFlowGraphWithTaint(module *modules.Module, complete bool, funcIdx uint32, funcParams map[uint32]structures.Taint, sources []Source) map[uint32]*DFG {
+func NewDataFlowGraphWithTaint(module *modules.Module, complete bool,
+	funcIdx uint32, funcParams map[uint32]structures.Taint,
+	sources []Source,
+	uses_indirect_call *bool, uses_memory *bool) map[uint32]*DFG {
 	// key: FuncIdx
 	dfg := make(map[uint32]*DFG)
 	cfg := controlFlowGraph.NewControlFlowGraph(module, complete, funcIdx)
 	visited := make(map[uint32]bool)
 
-	dfg = AnalyseTaintOfFunction(module, funcIdx, funcParams, sources, cfg, dfg, visited)
+	dfg = AnalyseTaintOfFunction(module, funcIdx, funcParams, sources, cfg, dfg, visited, uses_indirect_call, uses_memory)
 
 	// debug
 	// print all tainted vars

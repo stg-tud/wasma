@@ -222,6 +222,13 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 	*/
 
 	// check if wasi is used
+	numberFunctions := uint32(0)
+	if functionSection, err := module.GetFunctionSection(); err == nil {
+		numberFunctions = functionSection.Size
+	}
+	log.Printf("Number of functions: %v\n", numberFunctions)
+
+	// check if wasi is used
 	wasiIsUsed := false
 	if importSection, err := module.GetImportSection(); err == nil {
 		for _, customImportExport := range importSection.Imports {
@@ -241,7 +248,13 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 
 	start := time.Now()
 	// 2 paramter auf true setzen für alle funktionen
-	dfgs := dataFlowGraph.NewDataFlowGraphWithTaint(module, true, uint32(funcIdx), paramsToCheck, sourceIdxs)
+
+	uses_indirect_call := false
+	uses_memory := false
+
+	dfgs := dataFlowGraph.NewDataFlowGraphWithTaint(module, true, uint32(funcIdx), paramsToCheck, sourceIdxs, &uses_indirect_call, &uses_memory)
+	log.Printf("Uses indirect call: %v\n", uses_indirect_call)
+	log.Printf("Memory is used: %v\n", uses_memory)
 
 	// get calls to sinks
 	sinks := taintAnalysis.FindSinks(dfgs, module)
