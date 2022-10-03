@@ -75,16 +75,24 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSources() []string {
-	knownSources := ReadKnownStringsFile("../knownSources.txt") //[]string{"fd_read", "args_get"}
+	knownSources := ReadKnownStringsFile("./../../knownSources.txt") //[]string{"fd_read", "args_get"}
 	return knownSources
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSinks() []string {
-	knownSinks := ReadKnownStringsFile("../knownSinks.txt") //[]string{"fd_write"}
+	knownSinks := ReadKnownStringsFile("./../../knownSinks.txt") //[]string{"fd_write"}
 	return knownSinks
 }
 
 func ReadKnownStringsFile(filename string) []string {
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+
+	filename = filepath.Join(exPath, filename)
+
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
