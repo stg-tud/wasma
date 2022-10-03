@@ -221,6 +221,17 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 		}
 	*/
 
+	// check if wasi is used
+	if importSection, err := module.GetImportSection(); err == nil {
+		for _, customImportExport := range importSection.Imports {
+			//if funcNameStr == customImportExport.Imp.Name {
+			//	source := dataFlowGraph.Source{Name: funcNameStr, FuncIdx: customImportExport.Index}
+			//	funcIdxs = append(funcIdxs, source)
+			//}
+			log.Printf("Analyse function: %v %v %v", customImportExport.Imp.ModName, customImportExport.Imp.ImportDesc, customImportExport.Imp.Name)
+		}
+	}
+
 	funcIdx := taintAnalysis.GetIdOfEntrypointFunction(args, module)
 	paramsToCheck := taintAnalysis.GetInitialTaintedParameters(args)
 	sourcesName := taintAnalysis.GetKnownSources()
