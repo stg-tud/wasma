@@ -60,6 +60,9 @@ func NewNGram(n int, nGrams *map[string]int) NGram {
 
 func walkCFG(node uint32, subCFG *controlFlowGraph.CFG, nGram NGram, visited map[uint32]bool) {
 	currentNode := subCFG.Tree[node]
+	if currentNode == nil {
+		return
+	}
 	if currentNode.Control {
 		nGram.addIntr(currentNode.Instruction.Name())
 	} else {
