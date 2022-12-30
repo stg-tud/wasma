@@ -476,10 +476,10 @@ func AnalyseTaintOfFunction(module *modules.Module,
 					//taintedParams = append(taintedParams, uint32(varInIndex))
 				}
 
-				for varInIndex, varIn := range dataFlowEdgeOuter.Input {
+				for varInIndex := range dataFlowEdgeOuter.Input {
 					if oneParamTainted.Tainted {
 						taintedParams[uint32(varInIndex)] = oneParamTainted
-						log.Printf("Function %v param %v is %v\n", foundNewFunction, varInIndex, varIn)
+						//log.Printf("Function %v param %v is %v\n", foundNewFunction, varInIndex, varIn)
 					}
 					//taintedParams = append(taintedParams, uint32(varInIndex))
 				}
@@ -580,7 +580,7 @@ func NewDataFlowGraphWithTaint(module *modules.Module, complete bool,
 
 	// debug
 	// print all tainted vars
-	log.Printf("Visited functions %v\n", visited)
+	//log.Printf("Visited functions %v\n", visited)
 
 	/*
 		for visitedFunctionIdx, dataFlowGraph := range dfg {

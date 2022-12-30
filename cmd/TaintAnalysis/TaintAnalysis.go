@@ -75,12 +75,12 @@ func (taintAnalysis *TaintAnalysis) GetInitialTaintedParameters(args map[string]
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSources() []string {
-	knownSources := ReadKnownStringsFile("./../../knownSources.txt") //[]string{"fd_read", "args_get"}
+	knownSources := ReadKnownStringsFile("./../knownSources.txt")
 	return knownSources
 }
 
 func (taintAnalysis *TaintAnalysis) GetKnownSinks() []string {
-	knownSinks := ReadKnownStringsFile("./../../knownSinks.txt") //[]string{"fd_write"}
+	knownSinks := ReadKnownStringsFile("./../knownSinks.txt")
 	return knownSinks
 }
 
@@ -104,7 +104,9 @@ func ReadKnownStringsFile(filename string) []string {
 
 	// Read through 'tokens' until an EOF is encountered.
 	for sc.Scan() {
-		lines = append(lines, sc.Text())
+		if sc.Text() != "" {
+			lines = append(lines, sc.Text())
+		}
 	}
 
 	if err := sc.Err(); err != nil {
