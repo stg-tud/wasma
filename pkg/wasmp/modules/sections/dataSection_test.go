@@ -23,7 +23,7 @@ func TestNewDataSection(t *testing.T) {
 	numericInstructionI32.PositionValue = 4
 
 	// Positive test cases
-	positiveTestCases := []TestCaseDataSection{{bytes.NewReader([]byte{0x0B, 0x06, 0x01, 0x00, 0x41, 0x01, 0x0B, 0x00}), DataSection{0x0B, 6, []*Data{&Data{0, &instructions2.Expr{[]instructions2.Instruction{numericInstructionI32}}, []byte{}}}, 0, 2}}}
+	positiveTestCases := []TestCaseDataSection{{bytes.NewReader([]byte{0x0B, 0x06, 0x01, 0x00, 0x41, 0x01, 0x0B, 0x00}), DataSection{0x0B, 6, []*Data{{0, &instructions2.Expr{Instructions: []instructions2.Instruction{numericInstructionI32}}, []byte{}}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -47,7 +47,7 @@ func TestNewDataSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewDataSection(testCase.Reader)

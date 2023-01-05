@@ -4,6 +4,23 @@ import (
 	"wasma/pkg/wasmp/types"
 )
 
+type MemoryEntry struct {
+	Value   string
+	Tainted bool
+}
+
+type FunctionCall struct {
+	FuncIdx     uint32
+	Instruction string
+	Name        string
+}
+
+type Taint struct {
+	Tainted bool
+	Source  FunctionCall
+	Sink    FunctionCall
+}
+
 type Variable struct {
 	// Types:
 	// - P = parameter
@@ -18,6 +35,7 @@ type Variable struct {
 	VariableDataType   string
 	Value              string
 	LocalGlobalIn      bool
+	Taint              Taint
 }
 
 type Environment interface {
@@ -30,6 +48,7 @@ type Environment interface {
 	SetGlobal(globalIdx uint32, newValue Variable) (Variable, Variable, error)
 	GetGlobal(globalIdx uint32) (Variable, Variable, error)
 	NewParameter(variableDataType string) Variable
+	NewParameterWithTaint(variableDataType string, taint Taint) Variable
 	NewLocal(variableDataType string) Variable
 	NewGlobal(mut byte, variableDataType string) Variable
 	NewVariable(variableDataType string) Variable

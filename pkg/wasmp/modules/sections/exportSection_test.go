@@ -16,7 +16,7 @@ type TestCaseExportSection struct {
 
 func TestNewExportSection(t *testing.T) {
 	// Positive test cases
-	positiveTestCases := []TestCaseExportSection{{bytes.NewReader([]byte{0x07, 0x09, 0x01, 0x05, 0x65, 0x54, 0x65, 0x73, 0x74, 0x00, 0x01}), ExportSection{0x07, 9, []*Export{&Export{"eTest", &ExportDesc{ExportType: 0x00, FuncIdx: 0x01}}}, 0, 2}}}
+	positiveTestCases := []TestCaseExportSection{{bytes.NewReader([]byte{0x07, 0x09, 0x01, 0x05, 0x65, 0x54, 0x65, 0x73, 0x74, 0x00, 0x01}), ExportSection{0x07, 9, []*Export{{"eTest", &ExportDesc{ExportType: 0x00, FuncIdx: 0x01}}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -38,7 +38,7 @@ func TestNewExportSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewExportSection(testCase.Reader)

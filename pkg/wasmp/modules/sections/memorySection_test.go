@@ -17,7 +17,7 @@ type TestCaseMemorySection struct {
 
 func TestNewMemorySection(t *testing.T) {
 	// Positive test cases
-	positiveTestCases := []TestCaseMemorySection{{bytes.NewReader([]byte{0x05, 0x04, 0x01, 0x01, 0x00, 0x00}), MemorySection{0x05, 4, map[uint32]*types.Limit{0: {0, 0, 0x01}}, 0, 2}}}
+	positiveTestCases := []TestCaseMemorySection{{bytes.NewReader([]byte{0x05, 0x04, 0x01, 0x01, 0x00, 0x00}), MemorySection{0x05, 4, map[uint32]*types.Limit{0: {Min: 0, Max: 0, Type: 0x01}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -37,7 +37,7 @@ func TestNewMemorySection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewMemorySection(testCase.Reader)
