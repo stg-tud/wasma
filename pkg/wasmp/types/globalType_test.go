@@ -27,9 +27,9 @@ func TestNewGlobalType(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF")},
-		{bytes.NewReader([]byte{0x00, 0x00}), errors.New("Error while reading result type. Unexpected type got: 0. Valid types: 0x7F, 0x7E, 0x7D and 0x7C.")},
-		{bytes.NewReader([]byte{0x7F, 0x02}), errors.New("Error while reading global type Mut value. Expected 0x00 or 0x01, but got: 2.")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF")},
+		{Reader: bytes.NewReader([]byte{0x00, 0x00}), Err: errors.New("Error while reading result type. Unexpected type got: 0. Valid types: 0x7F, 0x7E, 0x7D and 0x7C.")},
+		{Reader: bytes.NewReader([]byte{0x7F, 0x02}), Err: errors.New("Error while reading global type Mut value. Expected 0x00 or 0x01, but got: 2.")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewGlobalType(testCase.Reader)

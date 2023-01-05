@@ -27,7 +27,7 @@ func TestNewElementSection(t *testing.T) {
 		ElementSection{
 			0x09,
 			6,
-			[]*Element{{0, &instructions2.Expr{[]instructions2.Instruction{numericInstructionI32}}, []uint32{}}},
+			[]*Element{{0, &instructions2.Expr{Instructions: []instructions2.Instruction{numericInstructionI32}}, []uint32{}}},
 			0,
 			2,
 			make(map[uint32]bool)}}}
@@ -54,7 +54,7 @@ func TestNewElementSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewElementSection(testCase.Reader)

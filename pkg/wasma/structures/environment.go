@@ -20,8 +20,8 @@ type Environment struct {
 	globalIdx          uint32
 	variableIdx        uint32
 	constantIdx        uint32
-	returnIdx uint32
-	Stack     Stack
+	returnIdx          uint32
+	Stack              Stack
 	// key: localIdx
 	Locals map[uint32]structures.Variable
 	// key: globalIdx
@@ -32,6 +32,9 @@ type Environment struct {
 	ReturnPoints map[uint32]string
 	// key: instrIdx
 	Flow map[uint32]DataFlowEdge
+	// key: Adress in memory
+	Memory                map[uint32]structures.MemoryEntry
+	IsEntireMemoryTainted bool
 }
 
 func (environment *Environment) SetGlobalIdx(newValue uint32) {
@@ -155,13 +158,20 @@ func (environment *Environment) GetGlobal(globalIdx uint32) (structures.Variable
 }
 
 func (environment *Environment) NewParameter(variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
+	newParameter := environment.NewParameterWithTaint(variableDataType, taint)
+	return newParameter
+}
+
+func (environment *Environment) NewParameterWithTaint(variableDataType string, taint structures.Taint) structures.Variable {
 	newParameter := structures.Variable{
-		"P",
-		environment.primaryVariableIdx,
-		fmt.Sprintf("P%v", environment.localIdx),
-		variableDataType,
-		"unknown",
-		false}
+		VariableType:       "P",
+		PrimaryVariableIdx: environment.primaryVariableIdx,
+		VariableName:       fmt.Sprintf("P%v", environment.localIdx),
+		VariableDataType:   variableDataType,
+		Value:              "unknown",
+		LocalGlobalIn:      false,
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newParameter
 	environment.Locals[environment.localIdx] = newParameter
 	environment.primaryVariableIdx++
@@ -170,13 +180,15 @@ func (environment *Environment) NewParameter(variableDataType string) structures
 }
 
 func (environment *Environment) NewLocal(variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newLocal := structures.Variable{
-		"L",
-		environment.primaryVariableIdx,
-		fmt.Sprintf("L%v", environment.localIdx),
-		variableDataType,
-		"unknown",
-		false}
+		VariableType:       "L",
+		PrimaryVariableIdx: environment.primaryVariableIdx,
+		VariableName:       fmt.Sprintf("L%v", environment.localIdx),
+		VariableDataType:   variableDataType,
+		Value:              "unknown",
+		LocalGlobalIn:      false,
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newLocal
 	environment.Locals[environment.localIdx] = newLocal
 	environment.primaryVariableIdx++
@@ -191,13 +203,15 @@ func (environment *Environment) NewGlobal(mut byte, variableDataType string) str
 	} else {
 		variableType = "GM"
 	}
+	taint := structures.Taint{Tainted: false}
 	newGlobal := structures.Variable{
-		variableType,
-		environment.primaryVariableIdx,
-		fmt.Sprintf("G%v", environment.globalIdx),
-		variableDataType,
-		"unknown",
-		false}
+		VariableType:       variableType,
+		PrimaryVariableIdx: environment.primaryVariableIdx,
+		VariableName:       fmt.Sprintf("G%v", environment.globalIdx),
+		VariableDataType:   variableDataType,
+		Value:              "unknown",
+		LocalGlobalIn:      false,
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newGlobal
 	environment.Globals[environment.globalIdx] = newGlobal
 	environment.primaryVariableIdx++
@@ -205,26 +219,30 @@ func (environment *Environment) NewGlobal(mut byte, variableDataType string) str
 	return newGlobal
 }
 func (environment *Environment) NewVariable(variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newVariable := structures.Variable{
-		"V",
-		environment.primaryVariableIdx,
-		fmt.Sprintf("V%v", environment.variableIdx),
-		variableDataType,
-		"unknown",
-		false}
+		VariableType:       "V",
+		PrimaryVariableIdx: environment.primaryVariableIdx,
+		VariableName:       fmt.Sprintf("V%v", environment.variableIdx),
+		VariableDataType:   variableDataType,
+		Value:              "unknown",
+		LocalGlobalIn:      false,
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newVariable
 	environment.primaryVariableIdx++
 	environment.variableIdx++
 	return newVariable
 }
 func (environment *Environment) NewConstant(value string, variableDataType string) structures.Variable {
+	taint := structures.Taint{Tainted: false}
 	newConstant := structures.Variable{
-		"C",
-		environment.primaryVariableIdx,
-		fmt.Sprintf("C%v", environment.constantIdx),
-		variableDataType,
-		value,
-		false}
+		VariableType:       "C",
+		PrimaryVariableIdx: environment.primaryVariableIdx,
+		VariableName:       fmt.Sprintf("C%v", environment.constantIdx),
+		VariableDataType:   variableDataType,
+		Value:              value,
+		LocalGlobalIn:      false,
+		Taint:              taint}
 	environment.Variables[environment.primaryVariableIdx] = newConstant
 	environment.primaryVariableIdx++
 	environment.constantIdx++

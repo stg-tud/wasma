@@ -17,7 +17,7 @@ type TestCaseTableSection struct {
 
 func TestNewTableSection(t *testing.T) {
 	// Positive test cases
-	positiveTestCases := []TestCaseTableSection{{bytes.NewReader([]byte{0x04, 0x04, 0x01, 0x70, 0x00, 0x00}), TableSection{0x04, 4, map[uint32]*types2.TableType{0: {&types2.Limit{0, 0, 0x00}}}, 0, 2}}}
+	positiveTestCases := []TestCaseTableSection{{bytes.NewReader([]byte{0x04, 0x04, 0x01, 0x70, 0x00, 0x00}), TableSection{0x04, 4, map[uint32]*types2.TableType{0: {Limit: &types2.Limit{Min: 0, Max: 0, Type: 0x00}}}, 0, 2}}}
 
 	for _, testCase := range positiveTestCases {
 		sectionId, _ := values.ReadNextByte(testCase.reader)
@@ -37,7 +37,7 @@ func TestNewTableSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewTableSection(testCase.Reader)

@@ -35,7 +35,7 @@ func TestNewFunctionSection(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF ==> section size could not be determined")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF ==> section size could not be determined")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewFunctionSection(testCase.Reader)

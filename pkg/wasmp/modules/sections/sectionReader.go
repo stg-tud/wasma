@@ -2,7 +2,6 @@ package sections
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 )
@@ -11,7 +10,7 @@ import (
 // byte reader
 func readNextSection(reader io.Reader, size uint32) (*bytes.Reader, error) {
 	if size < 1 {
-		return nil, errors.New(fmt.Sprintf("sectionn size must be greater or equal 1, but got: %v", size))
+		return nil, fmt.Errorf("sectionn size must be greater or equal 1, but got: %v", size)
 	}
 
 	sectionBytes := make([]byte, size)
@@ -30,9 +29,9 @@ func contentCompletelyRead(section string, size uint32, startByte uint32, curren
 		return nil
 	} else {
 		if currentByte-startByte < size {
-			return errors.New(fmt.Sprintf("not all Bytes of the %s section were read", section))
+			return fmt.Errorf("not all Bytes of the %s section were read", section)
 		} else {
-			return errors.New(fmt.Sprintf("more Bytes were read than the current %s section contains", section))
+			return fmt.Errorf("more Bytes were read than the current %s section contains", section)
 		}
 	}
 }

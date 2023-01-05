@@ -248,7 +248,6 @@ func getIfSuccessor(instrIdx uint32, thenEnd map[uint32]bool, startElseNode map[
 				var outerElseEnd uint32
 				if outerElseEnd, found = startElseNode[elseEnd+1]; !found && elseEnd+1 < uint32(len(disassembly.DisassembledInstrs)) {
 					return Edge{elseEnd + 1, ""}, true
-					break
 				} else if !found && elseEnd+1 >= uint32(len(disassembly.DisassembledInstrs)) {
 					break
 				}
@@ -272,7 +271,7 @@ func NewControlFlowGraph(module *modules.Module, complete bool, fIdx uint32) map
 	cfg := make(map[uint32]*CFG)
 	if complete {
 		if functionSection, err := module.GetFunctionSection(); err == nil {
-			for funcIdx, _ := range functionSection.TypeIdxs {
+			for funcIdx := range functionSection.TypeIdxs {
 				disassembly := code.DisassemblyFunction(funcIdx, module)
 				cfg[funcIdx] = &CFG{NewTree(disassembly), disassembly}
 			}
@@ -310,14 +309,14 @@ func (cfg *CFG) GetUnreachableCode() ([]uint32, error) {
 			if cfgNode, found := cfg.Tree[head.TargetNode]; found {
 				queue = append(queue, cfgNode.Successors...)
 			} else {
-				return nil, errors.New(fmt.Sprintf("no CFG node with index %v found", head.TargetNode))
+				return nil, fmt.Errorf("no CFG node with index %v found", head.TargetNode)
 			}
 		}
 	} else {
 		return nil, errors.New("no first CFG node with index 0 found")
 	}
 
-	for instrIdx, _ := range cfg.Tree {
+	for instrIdx := range cfg.Tree {
 		if !In(instrIdx, visitedNodes) {
 			unreachable = append(unreachable, instrIdx)
 		}

@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	values2 "wasma/pkg/wasmp/values"
@@ -50,7 +49,7 @@ func NewFunctionType(reader io.Reader) (FunctionType, error) {
 	}
 
 	if nextByte != 0x60 {
-		return FunctionType{}, errors.New(fmt.Sprintf("Error while reading type section. Expected 0x60 but got: %x", nextByte))
+		return FunctionType{}, fmt.Errorf("error while reading type section. Expected 0x60 but got: %x", nextByte)
 	}
 
 	// br parameter types

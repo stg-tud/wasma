@@ -56,7 +56,7 @@ func TestReadNextSection(t *testing.T) {
 
 	// Negative test case
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := readNextSection(testCase.Reader, 1)

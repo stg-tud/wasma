@@ -27,9 +27,9 @@ func TestNewTableType(t *testing.T) {
 
 	// Negative test cases
 	negativeTestCases := []test_utilities2.TestCaseError{
-		{bytes.NewReader([]byte{}), errors.New("EOF")},
-		{bytes.NewReader([]byte{0x03, 0x01}), errors.New("Error while reading table type. Expected 0x70 but got: 3")},
-		{bytes.NewReader([]byte{0x70, 0x01, 0x01}), errors.New("EOF")}}
+		{Reader: bytes.NewReader([]byte{}), Err: errors.New("EOF")},
+		{Reader: bytes.NewReader([]byte{0x03, 0x01}), Err: errors.New("Error while reading table type. Expected 0x70 but got: 3")},
+		{Reader: bytes.NewReader([]byte{0x70, 0x01, 0x01}), Err: errors.New("EOF")}}
 
 	for _, testCase := range negativeTestCases {
 		_, err := NewTableType(testCase.Reader)

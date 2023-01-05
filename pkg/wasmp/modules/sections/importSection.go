@@ -54,7 +54,7 @@ func newImportDesc(reader io.Reader) (*ImportDesc, error) {
 		}
 		importDesc.GlobalType = globalType
 	default:
-		return nil, errors.New(fmt.Sprintf("Error while reading importdesc. No valid identifier, got: %x", importDesc.ImportType))
+		return nil, fmt.Errorf(fmt.Sprintf("Error while reading importdesc. No valid identifier, got: %x", importDesc.ImportType))
 	}
 
 	return importDesc, nil
@@ -90,13 +90,13 @@ func newImport(reader io.Reader) (*Import, error) {
 }
 
 type ImportValue struct {
-	Imp *Import
+	Imp   *Import
 	Index uint32
 }
 
 type ImportSection struct {
-	Id   byte
-	Size uint32
+	Id      byte
+	Size    uint32
 	Imports []ImportValue
 	// Deviation from specification for easier processing:
 	// Imports are divided into func, table, mem and global imports

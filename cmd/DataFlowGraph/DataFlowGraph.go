@@ -35,7 +35,7 @@ func (dataFlowGraphAnalysis *DataFlowGraphAnalysis) Analyze(module *modules.Modu
 		}
 
 		start := time.Now()
-		dfgs := dataFlowGraph.NewDataFlowGraph(module, complete, uint32(funcIdx))
+		dfgs := dataFlowGraph.NewDataFlowGraph(module, false, uint32(funcIdx))
 		log.Printf("Data-flow graph construction for %v took %v\n", args["file"], time.Since(start))
 
 		if complete {

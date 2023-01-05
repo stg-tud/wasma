@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"wasma/pkg/wasmp/values"
@@ -23,8 +22,8 @@ func NewTableType(reader io.Reader) (*TableType, error) {
 
 	tableType := new(TableType)
 
-	if nextByte != 0x70 {
-		return tableType, errors.New(fmt.Sprintf("Error while reading table type. Expected 0x70 but got: %x", nextByte))
+	if nextByte != tableType.elemType() {
+		return tableType, fmt.Errorf("error while reading table type. Expected %x but got: %x", tableType.elemType(), nextByte)
 	}
 
 	limit, err := NewLimit(reader)
