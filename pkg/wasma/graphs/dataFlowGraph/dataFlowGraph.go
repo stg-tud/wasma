@@ -172,7 +172,6 @@ func AnalyseTaintOfFunction(module *modules.Module,
 
 	functionType, err := code.GetFuncParams(funcIdx, module)
 	if err == nil {
-		// todo taint param only if function id matches?
 		for i, param := range functionType.ParameterTypes {
 			taint := structures.Taint{Tainted: false}
 			for paramIndex, v := range funcParams {
@@ -228,15 +227,6 @@ func AnalyseTaintOfFunction(module *modules.Module,
 		case "call_indirect":
 			{
 				*uses_indirect_call = true
-				//for _, source := range sources {
-				// if could be indirect call
-
-				//if funcidx, error := instruction.Typeidx(); funcidx == source.FuncIdx && error == nil {
-				//	isSourceCall = true
-				//} else {
-				//	instruction.Funcidx()
-				//}
-				//}
 			}
 		case "i32.store", "i64.store", "f32.store", "f64.store", "i32.store8", "i32.store16", "i64.store8", "i64.store16", "i64.store32":
 			{
@@ -255,7 +245,7 @@ func AnalyseTaintOfFunction(module *modules.Module,
 				varOut.Taint.Source.Instruction = instruction.Name()
 				primaryVariableIdx := varOut.PrimaryVariableIdx
 				variableName := varOut.VariableName
-				//subEnvironment.Flow[instrIdx].Output[primaryVariableIdx] = varOut
+
 				subEnvironment.Variables[primaryVariableIdx] = varOut
 
 				// also taint vars with same name
@@ -294,8 +284,6 @@ func AnalyseTaintOfFunction(module *modules.Module,
 			}
 		}
 
-		// why do i need this
-		//for i := 0; i < 3000; i++ {
 		// propagate taint
 		// variable -> instruction
 		for _, varIn := range dataFlowEdgeOuter.Input {
@@ -334,7 +322,6 @@ func AnalyseTaintOfFunction(module *modules.Module,
 				}
 			}
 		}
-		//}
 
 		switch instruction.Name() {
 		case "call":
@@ -463,17 +450,14 @@ func AnalyseTaintOfFunction(module *modules.Module,
 				taintedParams := make(map[uint32]structures.Taint)
 				var oneParamTainted structures.Taint
 				// get number of params
-				// todo add shadow stack and only taint param if stack value is tainted
 
-				// todo check if maping of value to pram number is correct
+				// possible improvement add shadow stack and only taint param if stack value is tainted
+
 				for _, varIn := range dataFlowEdgeOuter.Input {
 					if varIn.Taint.Tainted {
-						//reversedIndex := uint32(len(dataFlowEdgeOuter.Input) - varInIndex - 1)
-						//taintedParams = append(taintedParams, reversedIndex)
 						oneParamTainted = varIn.Taint
 						//log.Printf("Function %v param %v is %v\n", foundNewFunction, varInIndex, varIn)
 					}
-					//taintedParams = append(taintedParams, uint32(varInIndex))
 				}
 
 				for varInIndex := range dataFlowEdgeOuter.Input {
@@ -481,7 +465,6 @@ func AnalyseTaintOfFunction(module *modules.Module,
 						taintedParams[uint32(varInIndex)] = oneParamTainted
 						//log.Printf("Function %v param %v is %v\n", foundNewFunction, varInIndex, varIn)
 					}
-					//taintedParams = append(taintedParams, uint32(varInIndex))
 				}
 
 				dfg = AnalyseTaintOfFunction(module,
@@ -580,7 +563,7 @@ func NewDataFlowGraphWithTaint(module *modules.Module, complete bool,
 
 	// debug
 	// print all tainted vars
-	//log.Printf("Visited functions %v\n", visited)
+	// log.Printf("Visited functions %v\n", visited)
 
 	/*
 		for visitedFunctionIdx, dataFlowGraph := range dfg {
@@ -608,7 +591,6 @@ func NewDataFlowGraph(module *modules.Module, complete bool, funcIdx uint32) map
 
 		functionType, err := code.GetFuncParams(funcIdx, module)
 		if err == nil {
-			// todo taint param
 			for _, param := range functionType.ParameterTypes {
 				environment.NewParameter(param)
 			}
@@ -768,9 +750,7 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 		}
 	}
 
-	//for i := 0; i < 1000; i++ {
 	// propagate taint
-
 	for _, dataFlowEdge := range environment.Flow {
 		// variable -> instruction
 		for _, varIn := range dataFlowEdge.Input {
@@ -867,10 +847,12 @@ func GetFlowTree(environment *structuresWasma.Environment) map[uint32][]FlowEdge
 	return tree
 }
 
-/* Input a node that will be the start node in the tree
-   Will run trough the wasm commands and set the environment
-   Output visited map with functionIdx as key and a bool value that indicates if the node is on the path
-   execute the commands like pop and push from stack */
+/*
+	Input a node that will be the start node in the tree
+	Will run trough the wasm commands and set the environment
+	Output visited map with functionIdx as key and a bool value that indicates if the node is on the path
+	execute the commands like pop and push from stack
+*/
 func walk(environment *structuresWasma.Environment, node *controlFlowGraph.CFGNode, tree map[uint32]*controlFlowGraph.CFGNode, visited map[uint32]bool) {
 	if _, found := visited[node.InstrIdx]; !found {
 

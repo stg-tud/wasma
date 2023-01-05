@@ -118,10 +118,13 @@ func ReadKnownStringsFile(filename string) []string {
 
 func (taintAnalysis *TaintAnalysis) FindSinks(dfgs map[uint32]*dataFlowGraph.DFG, module *modules.Module) map[uint32][]structures.Taint {
 
-	// get calls to sinks from flow
-	// how are function params given to call
-	// see if they are tainted
-	// if var coresponding to call is tainted add to sinks
+	/*
+	 get calls to sinks from flow
+	 how are function params given to call
+	 see if they are tainted
+	 if var coresponding to call is tainted add to sinks
+	*/
+
 	foundSinks := make(map[uint32][]structures.Taint)
 	for dfgId, dataFlowGraph := range dfgs {
 
@@ -255,7 +258,7 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 		}
 	*/
 
-	// check if wasi is used
+	// check number of functions
 	numberFunctions := uint32(0)
 	if functionSection, err := module.GetFunctionSection(); err == nil {
 		numberFunctions = functionSection.Size
@@ -281,11 +284,11 @@ func (taintAnalysis *TaintAnalysis) Analyze(module *modules.Module, args map[str
 	// find all calls and indirect calls that come after funcIdx of entry point
 
 	start := time.Now()
-	// 2 paramter auf true setzen für alle funktionen
 
 	uses_indirect_call := false
 	uses_memory := false
 
+	// set 2. paramter to true to analyze all functions
 	dfgs := dataFlowGraph.NewDataFlowGraphWithTaint(module, true, uint32(funcIdx), paramsToCheck, sourceIdxs, &uses_indirect_call, &uses_memory)
 	log.Printf("Uses indirect call: %v\n", uses_indirect_call)
 	log.Printf("Memory is used: %v\n", uses_memory)
